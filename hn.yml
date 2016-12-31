@@ -1,0 +1,30 @@
+---
+- hosts: all
+  tasks:
+  - name: install htop, ntp, avahi-daemon, and OpenJDK 8
+    apt: name={{item}} state=installed
+    with_items:
+      - htop
+      - ntp
+      - avahi-daemon
+      - default-jdk
+  - name: download spark to home directory
+    get_url:
+      url: http://d3kbcqa49mib13.cloudfront.net/spark-2.1.0-bin-hadoop2.7.tgz
+      dest: /home/ubuntu/spark-2.1.0-bin-hadoop2.7.tgz
+      owner: ubuntu
+  - name: extract spark
+    unarchive:
+      remote_src: True
+      src: /home/ubuntu/spark-2.1.0-bin-hadoop2.7.tgz
+      dest: /home/ubuntu/
+      owner: ubuntu
+      creates: /home/ubuntu/spark-2.1.0-bin-hadoop2.7
+  - name: add SPARK_HOME environment variable
+    lineinfile:
+      dest: /home/ubuntu/.bashrc
+      line: 'export SPARK_HOME=/home/ubuntu/spark-2.1.0-bin-hadoop2.7'
+  - name: add spark to PATH
+    lineinfile:
+      dest: /home/ubuntu/.bashrc
+      line: 'export PATH=$PATH:/home/ubuntu/spark-2.1.0-bin-hadoop2.7/bin'
