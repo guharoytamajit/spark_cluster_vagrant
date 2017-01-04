@@ -1,4 +1,5 @@
 Vagrant.configure("2") do |config|
+  N_WORKERS = 1
   config.vm.box = "ubuntu/xenial64"
   config.vm.network "private_network", type: "dhcp"
 
@@ -21,12 +22,13 @@ Vagrant.configure("2") do |config|
       echo "export PATH=$PATH:/home/ubuntu/spark-2.1.0-bin-hadoop2.7/bin" >> /home/ubuntu/.bashrc
       echo SPARK_LOCAL_IP=hn0.local >> /home/ubuntu/spark-2.1.0-bin-hadoop2.7/conf/spark-env.sh
       echo SPARK_MASTER_IP=hn0.local >> /home/ubuntu/spark-2.1.0-bin-hadoop2.7/conf/spark-env.sh
-      /home/ubuntu/spark-2.1.0-bin-hadoop2.7/sbin/start-master.sh -h hn0.local
     SHELL
+
+    node.vm.provision "shell", run: "always", inline: "/home/ubuntu/spark-2.1.0-bin-hadoop2.7/sbin/start-master.sh -h hn0.local"
   end
 
   # worker nodes:
-  (0..0).each do |i|
+  (0..N_WORKERS-1).each do |i|
     config.vm.define "wn#{i}" do |node|
       node.vm.hostname = "wn#{i}"
 
@@ -45,8 +47,9 @@ Vagrant.configure("2") do |config|
         echo "export PATH=$PATH:/home/ubuntu/spark-2.1.0-bin-hadoop2.7/bin" >> /home/ubuntu/.bashrc
         echo SPARK_LOCAL_IP=wn#{i}.local >> /home/ubuntu/spark-2.1.0-bin-hadoop2.7/conf/spark-env.sh
         echo SPARK_MASTER_IP=hn0.local >> /home/ubuntu/spark-2.1.0-bin-hadoop2.7/conf/spark-env.sh
-        /home/ubuntu/spark-2.1.0-bin-hadoop2.7/sbin/start-slave.sh -h wn#{i}.local spark://hn0.local:7077
       SHELL
+
+      node.vm.provision "shell", run: "always", inline: "/home/ubuntu/spark-2.1.0-bin-hadoop2.7/sbin/start-slave.sh -h wn#{i}.local spark://hn0.local:7077"
     end
   end
 end
