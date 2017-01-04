@@ -13,16 +13,12 @@ Vagrant.configure("2") do |config|
       vb.cpus = 2
     end
 
-    node.vm.provision "shell" do |s|
-      s.inline = "apt-get install -y python"
-    end
-
-    node.vm.provision "ansible" do |ansible|
-      ansible.playbook = "hn.yml"
-      ansible.sudo = true
-    end
-
     node.vm.provision "shell", inline: <<-SHELL
+      apt-get install -y python-dev htop ntp avahi-daemon default-jdk
+      wget --progress=bar:force -P /home/ubuntu/ http://d3kbcqa49mib13.cloudfront.net/spark-2.1.0-bin-hadoop2.7.tgz
+      tar xzf /home/ubuntu/spark-2.1.0-bin-hadoop2.7.tgz -C /home/ubuntu/
+      echo "export SPARK_HOME=/home/ubuntu/spark-2.1.0-bin-hadoop2.7" >> /home/ubuntu/.bashrc
+      echo "export PATH=$PATH:/home/ubuntu/spark-2.1.0-bin-hadoop2.7/bin" >> /home/ubuntu/.bashrc
       echo SPARK_LOCAL_IP=hn0.local >> /home/ubuntu/spark-2.1.0-bin-hadoop2.7/conf/spark-env.sh
       echo SPARK_MASTER_IP=hn0.local >> /home/ubuntu/spark-2.1.0-bin-hadoop2.7/conf/spark-env.sh
       /home/ubuntu/spark-2.1.0-bin-hadoop2.7/sbin/start-master.sh -h hn0.local
@@ -41,16 +37,12 @@ Vagrant.configure("2") do |config|
         vb.cpus = 2
       end
 
-      node.vm.provision "shell" do |s|
-        s.inline = "apt-get install -y python"
-      end
-
-      node.vm.provision "ansible" do |ansible|
-        ansible.playbook = "wn.yml"
-        ansible.sudo = true
-      end
-
       node.vm.provision "shell", inline: <<-SHELL
+        apt-get install -y python-dev htop ntp avahi-daemon default-jdk
+        wget --progress=bar:force -P /home/ubuntu/ http://d3kbcqa49mib13.cloudfront.net/spark-2.1.0-bin-hadoop2.7.tgz
+        tar xzf /home/ubuntu/spark-2.1.0-bin-hadoop2.7.tgz -C /home/ubuntu/
+        echo "export SPARK_HOME=/home/ubuntu/spark-2.1.0-bin-hadoop2.7" >> /home/ubuntu/.bashrc
+        echo "export PATH=$PATH:/home/ubuntu/spark-2.1.0-bin-hadoop2.7/bin" >> /home/ubuntu/.bashrc
         echo SPARK_LOCAL_IP=wn#{i}.local >> /home/ubuntu/spark-2.1.0-bin-hadoop2.7/conf/spark-env.sh
         echo SPARK_MASTER_IP=hn0.local >> /home/ubuntu/spark-2.1.0-bin-hadoop2.7/conf/spark-env.sh
         /home/ubuntu/spark-2.1.0-bin-hadoop2.7/sbin/start-slave.sh -h wn#{i}.local spark://hn0.local:7077
