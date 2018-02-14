@@ -1,11 +1,12 @@
 Vagrant.configure("2") do |config|
-  N_WORKERS = 1
+  N_WORKERS = 2
+
   config.vm.box = "ubuntu/xenial64"
-  config.vm.network "private_network", type: "dhcp"
 
   # head node:
   config.vm.define "hn0" do |node|
     node.vm.hostname = "hn0"
+    node.vm.network "private_network", ip: "172.28.128.150"
 
     node.vm.provider "virtualbox" do |vb|
       vb.name = "hn0"
@@ -14,23 +15,25 @@ Vagrant.configure("2") do |config|
       vb.cpus = 2
     end
 
-    node.vm.provision "shell", inline: <<-SHELL
-      apt-get install -y python-dev htop ntp avahi-daemon default-jdk
-      wget --progress=bar:force -P /home/ubuntu/ http://d3kbcqa49mib13.cloudfront.net/spark-2.1.0-bin-hadoop2.7.tgz
-      tar xzf /home/ubuntu/spark-2.1.0-bin-hadoop2.7.tgz -C /home/ubuntu/
-      echo "export SPARK_HOME=/home/ubuntu/spark-2.1.0-bin-hadoop2.7" >> /home/ubuntu/.bashrc
-      echo "export PATH=$PATH:/home/ubuntu/spark-2.1.0-bin-hadoop2.7/bin" >> /home/ubuntu/.bashrc
-      echo SPARK_LOCAL_IP=hn0.local >> /home/ubuntu/spark-2.1.0-bin-hadoop2.7/conf/spark-env.sh
-      echo SPARK_MASTER_IP=hn0.local >> /home/ubuntu/spark-2.1.0-bin-hadoop2.7/conf/spark-env.sh
+    node.vm.provision "shell", inline: <<-SHELL 
+      apt-get install -y python-dev ntp default-jdk
+      mkdir /home/vagrant/spark
+      tar xf /vagrant/spark.tgz -C /home/vagrant/spark --strip 1
+      echo "export SPARK_HOME=/home/vagrant/spark" >> /home/vagrant/.bashrc
+      echo "export PATH=$PATH:/home/vagrant/spark/bin" >> /home/vagrant/.bashrc
+      echo "spark.master spark://172.28.128.150:7077" >> /home/vagrant/spark/conf/spark-defaults.conf
+      echo "SPARK_LOCAL_IP=172.28.128.150" >> /home/vagrant/spark/conf/spark-env.sh
+      echo "SPARK_MASTER_IP=172.28.128.150" >> /home/vagrant/spark/conf/spark-env.sh
     SHELL
 
-    node.vm.provision "shell", run: "always", inline: "/home/ubuntu/spark-2.1.0-bin-hadoop2.7/sbin/start-master.sh -h hn0.local"
+    node.vm.provision "shell", run: "always", inline: "/home/vagrant/spark/sbin/start-master.sh -h 172.28.128.150"
   end
 
   # worker nodes:
   (0..N_WORKERS-1).each do |i|
     config.vm.define "wn#{i}" do |node|
       node.vm.hostname = "wn#{i}"
+      node.vm.network "private_network", ip: "172.28.128.20#{i}"
 
       node.vm.provider "virtualbox" do |vb|
         vb.name = "wn#{i}"
@@ -40,16 +43,16 @@ Vagrant.configure("2") do |config|
       end
 
       node.vm.provision "shell", inline: <<-SHELL
-        apt-get install -y python-dev htop ntp avahi-daemon default-jdk
-        wget --progress=bar:force -P /home/ubuntu/ http://d3kbcqa49mib13.cloudfront.net/spark-2.1.0-bin-hadoop2.7.tgz
-        tar xzf /home/ubuntu/spark-2.1.0-bin-hadoop2.7.tgz -C /home/ubuntu/
-        echo "export SPARK_HOME=/home/ubuntu/spark-2.1.0-bin-hadoop2.7" >> /home/ubuntu/.bashrc
-        echo "export PATH=$PATH:/home/ubuntu/spark-2.1.0-bin-hadoop2.7/bin" >> /home/ubuntu/.bashrc
-        echo SPARK_LOCAL_IP=wn#{i}.local >> /home/ubuntu/spark-2.1.0-bin-hadoop2.7/conf/spark-env.sh
-        echo SPARK_MASTER_IP=hn0.local >> /home/ubuntu/spark-2.1.0-bin-hadoop2.7/conf/spark-env.sh
+        apt-get install -y python-dev ntp avahi-daemon default-jdk
+        mkdir /home/vagrant/spark
+        tar xf /vagrant/spark.tgz -C /home/vagrant/spark --strip 1
+        echo "export SPARK_HOME=/home/vagrant/spark" >> /home/vagrant/.bashrc
+        echo "export PATH=$PATH:/home/vagrant/spark/bin" >> /home/vagrant/.bashrc
+        echo SPARK_LOCAL_IP=172.28.128.20#{i} >> /home/vagrant/spark/conf/spark-env.sh
+        echo SPARK_MASTER_IP=172.28.128.150 >> /home/vagrant/spark/conf/spark-env.sh
       SHELL
 
-      node.vm.provision "shell", run: "always", inline: "/home/ubuntu/spark-2.1.0-bin-hadoop2.7/sbin/start-slave.sh -h wn#{i}.local spark://hn0.local:7077"
+      node.vm.provision "shell", run: "always", inline: "/home/vagrant/spark/sbin/start-slave.sh -h 172.28.128.20#{i} spark://172.28.128.150:7077"
     end
   end
 end
