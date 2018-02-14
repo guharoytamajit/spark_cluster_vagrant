@@ -6,7 +6,7 @@ Vagrant template to provision a standalone Spark cluster with lean defaults. Thi
 - See `Vagrantfile` for details and to make changes.
 - Spark running as a standalone cluster. Tested with Spark 2.1.x and 2.2.x.
 - One head node Ubuntu 16.04 machine and `N` worker (slave) machines.
-- Spark running in standlone cluster mode.
+- Spark running in standalone cluster mode.
 
 # Usage #
 
